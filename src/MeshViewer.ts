@@ -8,7 +8,6 @@ export class MeshViewer extends GraphicsApp
     // State variables
     private debugMode : boolean;
     private mouseDrag : boolean;
-    private crushAlpha : number;
 
     // Camera parameters
     private cameraOrbitX : number;
@@ -28,6 +27,8 @@ export class MeshViewer extends GraphicsApp
     private faceMesh : THREE.Mesh;
     private sadFaceVertices : number[];
     private happyFaceVertices : number[];
+    private sadFaceNormals : number[];
+    private happyFaceNormals: number[];
     private faceAlpha;
 
     constructor()
@@ -37,7 +38,6 @@ export class MeshViewer extends GraphicsApp
 
         this.debugMode = false;
         this.mouseDrag = false;
-        this.crushAlpha = 0;
 
         this.cameraOrbitX = 0;
         this.cameraOrbitY = 0;
@@ -54,6 +54,8 @@ export class MeshViewer extends GraphicsApp
         this.faceMesh = new THREE.Mesh();
         this.sadFaceVertices = [];
         this.happyFaceVertices = [];
+        this.sadFaceNormals = [];
+        this.happyFaceNormals = [];
         this.faceAlpha = 0;
     }
 
@@ -152,26 +154,38 @@ export class MeshViewer extends GraphicsApp
             this.faceMesh.rotation.x = -Math.PI / 2;
             this.scene.add(this.faceMesh);
 
-            // Save the sad face vertices as a member variable
+            // Save the sad face vertices and normals
             var positions = geometry.getAttribute('position');
             this.sadFaceVertices = positions.array as number[];
+
+            var normals = geometry.getAttribute('normal');
+            this.sadFaceNormals = normals.array as number[];
         });
 
         loader.load('./assets/happy.ply', (geometry: THREE.BufferGeometry) => {
-            // Save the happy face vertices as a member variable
+            
+            // Save the happy face vertices and normals
             var positions = geometry.getAttribute('position');
             this.happyFaceVertices = positions.array as number[];
+
+            var normals = geometry.getAttribute('normal');
+            this.happyFaceNormals = normals.array as number[];
         });
     }
 
     private morphFace(alpha : number)
     {
         var blendedVertices = [];
+        var blendedNormals = [];
+
         for(let i=0; i < this.sadFaceVertices.length; i++)
         {
             blendedVertices.push(THREE.MathUtils.lerp(this.sadFaceVertices[i], this.happyFaceVertices[i], alpha));
+            blendedNormals.push(THREE.MathUtils.lerp(this.sadFaceNormals[i], this.happyFaceNormals[i], alpha));
         }
+
         this.faceMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(blendedVertices, 3));
+        this.faceMesh.geometry.setAttribute('normal', new THREE.Float32BufferAttribute(blendedNormals, 3));
     }
 
     update(deltaTime : number) : void

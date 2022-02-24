@@ -62,7 +62,7 @@ export class MeshViewer extends GraphicsApp
     createScene() : void
     {
         // Setup camera
-        this.cameraDistance = 3;
+        this.cameraDistance = 1;
         this.camera.position.set(0, 0, this.cameraDistance);
         this.camera.lookAt(0, 0, 0);
         this.camera.up.set(0, 1, 0);
@@ -137,8 +137,10 @@ export class MeshViewer extends GraphicsApp
         debugController.name('Debug Mode');
         debugController.onChange((value: boolean) => { this.toggleDebugMode(value) });
 
-        this.faceMesh.material = new THREE.MeshLambertMaterial();
         this.loadFaces();
+        this.faceMesh.material = new THREE.MeshLambertMaterial();
+        this.faceMesh.scale.set(0.035, 0.035, 0.035);
+        this.scene.add(this.faceMesh);
     }
 
     private loadFaces() : void
@@ -146,13 +148,9 @@ export class MeshViewer extends GraphicsApp
         var loader = new PLYLoader();
 
         loader.load('./assets/sad.ply', (geometry: THREE.BufferGeometry) => {
+
             // Use the sad face to initialize the mesh
             this.faceMesh.geometry = geometry;
-
-            // The face needs to be scaled and rotated
-            this.faceMesh.scale.set(0.1, 0.1, 0.1);
-            this.faceMesh.rotation.x = -Math.PI / 2;
-            this.scene.add(this.faceMesh);
 
             // Save the sad face vertices and normals
             var positions = geometry.getAttribute('position');
@@ -283,20 +281,5 @@ export class MeshViewer extends GraphicsApp
         {
             this.faceMesh.material = this.faceMesh.userData['originalMaterial'];
         }
-
-        this.faceMesh.children.forEach((elem: THREE.Object3D) => {
-            if(elem instanceof THREE.Mesh)
-            {
-                if(debugMode)
-                {
-                    elem.userData = {'originalMaterial' : elem.material}
-                    elem.material = this.debugMaterial;
-                }
-                else
-                {
-                    elem.material = elem.userData['originalMaterial'];
-                }
-            }
-        });
     }
 }

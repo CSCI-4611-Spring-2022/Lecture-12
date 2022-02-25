@@ -24,6 +24,10 @@ npm run start
 
 The build system should launch your program in a web browser automatically.  If not, you can run it by pointing your browser at `http://localhost:8080`.
 
+## Acknowledgments
+
+The [sad face](https://free3d.com/3d-model/sad-facial-expression-v2--838033.html) and [happy face](https://free3d.com/3d-model/happy-facial-expression-v2--199078.html) meshes were obtained from [free3d.com](https://free3d.com/).
+
 ## License
 
 Material for [CSCI 4611 Spring 2022](https://canvas.umn.edu/courses/290928/assignments/syllabus) by [Evan Suma Rosenberg](https://illusioneering.umn.edu/) is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/).

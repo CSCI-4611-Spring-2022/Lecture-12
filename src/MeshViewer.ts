@@ -25,11 +25,16 @@ export class MeshViewer extends GraphicsApp
     private lightHelper : THREE.Line;
 
     private faceMesh : THREE.Mesh;
-    private sadFaceVertices : number[];
-    private happyFaceVertices : number[];
-    private sadFaceNormals : number[];
-    private happyFaceNormals: number[];
-    private faceAlpha;
+    private sadVertices : number[];
+    private happyVertices : number[];
+    private sadNormals : number[];
+    private happyNormals : number[];
+    private sadColor : THREE.Color;
+    private happyColor : THREE.Color;
+    private sadPosition : THREE.Vector3;
+    private happyPosition : THREE.Vector3;
+    private faceAlpha : number;
+    private morphDirection : number;
 
     constructor()
     {
@@ -52,11 +57,16 @@ export class MeshViewer extends GraphicsApp
         this.lightHelper = new THREE.Line();
 
         this.faceMesh = new THREE.Mesh();
-        this.sadFaceVertices = [];
-        this.happyFaceVertices = [];
-        this.sadFaceNormals = [];
-        this.happyFaceNormals = [];
+        this.sadVertices = [];
+        this.happyVertices = [];
+        this.sadNormals = [];
+        this.happyNormals = [];
+        this.sadColor = new THREE.Color('blue');
+        this.happyColor = new THREE.Color('orange');
+        this.sadPosition = new THREE.Vector3(0, 0, -1);
+        this.happyPosition = new THREE.Vector3(0, 0, 0);
         this.faceAlpha = 0;
+        this.morphDirection = 1;
     }
 
     createScene() : void
@@ -114,10 +124,9 @@ export class MeshViewer extends GraphicsApp
         var controls = gui.addFolder('Controls');
         controls.open();
 
-        // Create a GUI control for the face alpha
         var faceController = controls.add(this, 'faceAlpha', 0, 1);
         faceController.name('Face Alpha');
-        faceController.onChange((value: number) => { this.morphFace(value)});
+        faceController.onChange((value: number) => { this.morphFace()});
 
         // Create a GUI control for the light parameters
         var lightXController = controls.add(this, 'lightOrbitX', -180, 180);
@@ -138,8 +147,9 @@ export class MeshViewer extends GraphicsApp
         debugController.onChange((value: boolean) => { this.toggleDebugMode(value) });
 
         this.loadFaces();
-        this.faceMesh.material = new THREE.MeshLambertMaterial();
+        this.faceMesh.material = new THREE.MeshLambertMaterial({color: this.sadColor});
         this.faceMesh.scale.set(0.035, 0.035, 0.035);
+        this.faceMesh.position.copy(this.sadPosition);
         this.scene.add(this.faceMesh);
     }
 
@@ -147,48 +157,54 @@ export class MeshViewer extends GraphicsApp
     {
         var loader = new PLYLoader();
 
-        loader.load('./assets/sad.ply', (geometry: THREE.BufferGeometry) => {
-
-            // Use the sad face to initialize the mesh
+        loader.load('./assets/sad.ply', (geometry : THREE.BufferGeometry) => {
             this.faceMesh.geometry = geometry;
-
-            // Save the sad face vertices and normals
-            var positions = geometry.getAttribute('position');
-            this.sadFaceVertices = positions.array as number[];
-
-            var normals = geometry.getAttribute('normal');
-            this.sadFaceNormals = normals.array as number[];
+            this.sadVertices = geometry.getAttribute('position').array as number[];
+            this.sadNormals = geometry.getAttribute('normal').array as number[];
         });
 
-        loader.load('./assets/happy.ply', (geometry: THREE.BufferGeometry) => {
-            
-            // Save the happy face vertices and normals
-            var positions = geometry.getAttribute('position');
-            this.happyFaceVertices = positions.array as number[];
-
-            var normals = geometry.getAttribute('normal');
-            this.happyFaceNormals = normals.array as number[];
+        loader.load('./assets/happy.ply', (geometry : THREE.BufferGeometry) => {
+            this.happyVertices = geometry.getAttribute('position').array as number[];
+            this.happyNormals = geometry.getAttribute('normal').array as number[];
         });
     }
 
-    private morphFace(alpha : number)
+    private morphFace() : void
     {
         var blendedVertices = [];
         var blendedNormals = [];
 
-        for(let i=0; i < this.sadFaceVertices.length; i++)
+        for(let i=0; i < this.sadVertices.length; i++)
         {
-            blendedVertices.push(THREE.MathUtils.lerp(this.sadFaceVertices[i], this.happyFaceVertices[i], alpha));
-            blendedNormals.push(THREE.MathUtils.lerp(this.sadFaceNormals[i], this.happyFaceNormals[i], alpha));
+            blendedVertices.push(THREE.MathUtils.lerp(
+                this.sadVertices[i], this.happyVertices[i], this.faceAlpha));
+            
+            blendedNormals.push(THREE.MathUtils.lerp(
+                this.sadNormals[i], this.happyNormals[i], this.faceAlpha));
         }
 
         this.faceMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(blendedVertices, 3));
         this.faceMesh.geometry.setAttribute('normal', new THREE.Float32BufferAttribute(blendedNormals, 3));
+
+        var blendedColor = new THREE.Color();
+        blendedColor.lerpColors(this.sadColor, this.happyColor, this.faceAlpha);
+        (this.faceMesh.material as THREE.MeshLambertMaterial).color = blendedColor;
+
+        var blendedPosition = new THREE.Vector3();
+        blendedPosition.lerpVectors(this.sadPosition, this.happyPosition, this.faceAlpha);
+        this.faceMesh.position.copy(blendedPosition);
     }
 
     update(deltaTime : number) : void
     {
+        this.faceAlpha += 0.5 * deltaTime * this.morphDirection;
+        if(this.faceAlpha > 1 || this.faceAlpha < 0)
+        {
+            this.faceAlpha = THREE.MathUtils.clamp(this.faceAlpha, 0, 1);
+            this.morphDirection *= -1;
+        }
 
+        this.morphFace();
     }
 
     // Mouse event handlers for wizard functionality
